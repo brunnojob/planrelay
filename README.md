@@ -6,7 +6,7 @@
   <a href="LICENSE-MIT"><img src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-58ddb0" alt="License"></a>
   <img src="https://img.shields.io/badge/local-first-58ddb0" alt="Local first">
 </p>
-<p align="center"><a href="#start-in-30-seconds">Quick start</a> · <a href="https://brunnojob.github.io/planrelay/planrelay-demo/">Try the browser demo</a> · <a href="docs/planrelay/ARCHITECTURE.md">Architecture</a> · <a href="docs/planrelay/README.pt-BR.md">Português</a> · <a href="UPSTREAM-README.md">Inherited Plannotator documentation</a></p>
+<p align="center"><a href="#quick-start">Quick start</a> · <a href="https://brunnojob.github.io/planrelay/planrelay-demo/">Try the browser demo</a> · <a href="docs/planrelay/ARCHITECTURE.md">Architecture</a> · <a href="docs/planrelay/README.pt-BR.md">Português</a> · <a href="UPSTREAM-README.md">Inherited Plannotator documentation</a></p>
 
 # PlanRelay
 
