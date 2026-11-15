@@ -1,8 +1,9 @@
 import React from 'react';
 import { RepoIcon } from '@plannotator/ui/components/RepoIcon';
 import { HeaderTotals } from './HeaderTotals';
+import { BranchName } from './BranchName';
 
-const BRANCH_TAIL = 8;
+const PHONE_MIN_BRANCH_CHARS = 8;
 
 export function headerBranchTooltip(branch: string | undefined, repo: string, files: ReadonlyArray<{ additions: number; deletions: number }>): string {
   const additions = files.reduce((sum, file) => sum + file.additions, 0);
@@ -23,15 +24,16 @@ export const HeaderBranch: React.FC<{
     data-header-branch=""
   >
     {branch && (
-      <span className="min-w-0 flex text-xs font-mono text-foreground" data-header-branch-name="">
-        <span className="truncate">{branch.length > BRANCH_TAIL * 2 ? branch.slice(0, -BRANCH_TAIL) : branch}</span>
-        {branch.length > BRANCH_TAIL * 2 && <span className="flex-none">{branch.slice(-BRANCH_TAIL)}</span>}
+      <span className="min-w-0 flex overflow-hidden text-xs font-mono text-foreground" data-header-branch-name="">
+        <BranchName branch={branch} minVisible={compact ? PHONE_MIN_BRANCH_CHARS : 0} />
       </span>
     )}
-    <span className="text-xs text-muted-foreground inline-flex items-center gap-1 truncate max-w-[220px] flex-none">
-      <RepoIcon className="w-3 h-3 flex-shrink-0" />
-      {repo}
-    </span>
-    {!compact && <span className="flex-none"><HeaderTotals files={files} /></span>}
+    {!(compact && branch) && (
+      <span className="min-w-0 shrink-[2] overflow-hidden text-xs text-muted-foreground inline-flex items-center gap-1 max-w-[220px]" data-header-shed="" data-header-repo="">
+        <RepoIcon className="w-3 h-3 flex-shrink-0" />
+        <span className="min-w-0 truncate">{repo}</span>
+      </span>
+    )}
+    {!compact && <span className="flex-none" data-header-shed=""><HeaderTotals files={files} /></span>}
   </div>
 );

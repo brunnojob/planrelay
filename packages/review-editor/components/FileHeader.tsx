@@ -6,8 +6,12 @@ import { SemanticFileBadge } from './SemanticFileBadge';
 import { CallFlowFileBadge } from './CallFlowFileBadge';
 import { OpenInAppButton } from '@plannotator/ui/components/OpenInAppButton';
 import { useReviewStateOptional } from '../dock/ReviewStateContext';
+import { useRovingToolbar } from '../hooks/useRovingToolbar';
+import { CompactFileActions } from './CompactFileActions';
 import type { DiffFileStatus } from '../types';
 import { FileKindIcon } from '@plannotator/guide-viewer/FileKindIcon';
+import { fileStatusLetter } from '@plannotator/ui/utils/fileStatusLetter';
+import { formatCount } from '@plannotator/ui/utils/countFormat';
 
 interface FileHeaderProps {
   /** Read-only host: no open-in affordance (it probes the review server). */
@@ -89,30 +93,11 @@ function splitFilePath(filePath: string): { directory: string; name: string } {
 }
 
 
-/**
- * Change-type letter shown to the right of the +/- counts (matches the file
- * tree): A added · D deleted · R renamed, colored so the critical changes pop.
- * Modified is bare — the +/- counts already say it changed within the file.
- */
-const STATUS_LETTER: Record<DiffFileStatus, { letter: string; className: string; title: string }> = {
-  added: { letter: 'A', className: 'text-success', title: 'Added file' },
-  modified: { letter: 'M', className: 'text-muted-foreground', title: 'Modified file' },
-  deleted: { letter: 'D', className: 'text-destructive', title: 'Deleted file' },
-  renamed: { letter: 'R', className: 'text-[#007aff]', title: 'Renamed file' },
-};
-
 const FileStatusLetter: React.FC<{ status: DiffFileStatus; oldPath?: string }> = ({ status, oldPath }) => {
-  // Match the file tree: only added/deleted/renamed get a badge; modified is
-  // bare (the +/- counts already convey that it changed within the file).
   if (status === 'modified') return null;
-  const meta = STATUS_LETTER[status];
-  const title = status === 'renamed' && oldPath ? `Renamed from ${oldPath}` : meta.title;
+  const meta = fileStatusLetter(status, { oldPath });
   return (
-    <span
-      className={`flex-none font-semibold leading-none ${meta.className}`}
-      title={title}
-      aria-label={title}
-    >
+    <span className={`flex-none leading-none ${meta.className}`} title={meta.title} aria-label={meta.title} data-file-header-status={meta.letter}>
       {meta.letter}
     </span>
   );
@@ -130,6 +115,8 @@ function countChanges(patch: string): { additions: number; deletions: number } {
 }
 
 /** Sticky file header with file path, Viewed toggle, Git Add, and Copy Diff button */
+const NARROW_ACTIONS_WIDTH = 360;
+
 export const FileHeader: React.FC<FileHeaderProps> = ({
   filePath,
   patch,
@@ -166,9 +153,11 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
   const isCompactTouchLayout = compactTouchLayout ?? state?.isCompactTouchLayout ?? false;
   const headerRef = useRef<HTMLDivElement>(null);
   const fileCommentRef = useRef<HTMLButtonElement>(null);
+  useRovingToolbar(headerRef, viewedKeyHint);
   const { directory, name } = splitFilePath(filePath);
   const paneTabs = usePaneTabsInHeader();
   const isVeryTight = headerWidth > 0 && headerWidth < 480;
+  const menuActions = isCompactTouchLayout || (!readOnly && headerWidth > 0 && headerWidth < NARROW_ACTIONS_WIDTH);
   const narrow = headerWidth > 0 && headerWidth < 560;
 
   useEffect(() => {
@@ -193,8 +182,11 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
     <div
       ref={headerRef}
       data-file-header=""
-      className={`@container/file-header flex-shrink-0 border-b border-border flex items-center justify-between gap-2 transition-colors duration-150 ${paneTabs ? '' : 'hover:bg-muted/30'} ${isCompactTouchLayout ? (paneTabs ? 'px-3' : 'pr-3') : paneTabs ? 'pl-3 pr-2' : 'pl-2 pr-2'}`}
+      className={`@container/file-header group/file-header flex-shrink-0 border-b border-border flex items-center justify-between gap-2 transition-colors duration-150 ${paneTabs ? '' : 'hover:bg-muted/30'} ${isCompactTouchLayout ? (paneTabs ? 'px-3' : 'pl-3 pr-1') : paneTabs ? 'pl-3 pr-2' : 'pl-2 pr-2'}`}
       style={{ height: isCompactTouchLayout ? `${COMPACT_FILE_HEADER_HEIGHT}px` : 'var(--panel-header-h)' }}
+      data-file-header-path={filePath}
+      role={viewedKeyHint ? 'toolbar' : undefined}
+      aria-label={viewedKeyHint ? filePath : undefined}
     >
       {paneTabs ? (
         <div className="min-w-0 flex flex-1 self-stretch items-stretch gap-2" data-file-header-tabs="" data-roving-skip="">
@@ -206,10 +198,10 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
           )}
         </div>
       ) : (
-        <div className="min-w-0 flex flex-1 items-center" onClick={onCollapseToggle} style={onCollapseToggle ? { cursor: 'pointer' } : undefined}>
+        <div className="min-w-0 flex flex-1 items-center overflow-hidden" onClick={onCollapseToggle} style={onCollapseToggle ? { cursor: 'pointer' } : undefined}>
           {collapseToggle}
           <span
-            className={`min-w-0 flex items-center text-[13px] font-medium leading-normal whitespace-nowrap ${isCompactTouchLayout ? 'flex-1' : ''}`}
+            className={`min-w-0 flex items-center text-[13px] font-medium leading-normal whitespace-nowrap [font-variant-ligatures:no-contextual] ${isCompactTouchLayout ? 'flex-1' : ''}`}
             title={status === 'renamed' && oldPath ? `${oldPath} → ${filePath}` : filePath}
           >
             {/* Rename: dimmed old path → new path (diffshub treatment). Dropped
@@ -236,7 +228,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
                * the basename/extension receive the available phone width. */
               <span
                 data-pn-compact-file-path
-                className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-foreground [direction:rtl]"
+                className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-left text-foreground [direction:rtl]"
               >
                 <bdi>{filePath}</bdi>
               </span>
@@ -253,14 +245,14 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
           </span>
           {isTest && <FileKindIcon kind="test" size={13} className="ml-1.5 flex-none text-muted-foreground" title="Test file" />}
           {(additions > 0 || deletions > 0 || (status && status !== 'modified') || isGenerated) && (
-            <span className="flex-none ml-3 flex items-center gap-1.5 text-[12px] leading-none tabular-nums">
-              {additions > 0 && <span className="text-success">+{additions}</span>}
-              {deletions > 0 && <span className="text-destructive">−{deletions}</span>}
+            <span className="min-w-0 shrink-[1000] ml-3 flex h-4 flex-wrap items-center gap-x-1.5 overflow-hidden text-[12px] leading-4 tabular-nums" data-file-header-counts="">
+              {additions > 0 && <span className="text-success">+{formatCount(additions)}</span>}
+              {deletions > 0 && <span className="text-destructive">−{formatCount(deletions)}</span>}
               {status && <FileStatusLetter status={status} oldPath={oldPath} />}
               {isGenerated && (
                 <span
                   data-pn-generated-badge
-                  className="flex-none rounded-sm border border-border/60 bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium leading-none text-muted-foreground"
+                  className="flex-none rounded-sm border border-border/60 bg-muted/60 px-1.5 py-0.5 text-xs font-medium leading-none text-muted-foreground"
                   title="Marked linguist-generated in .gitattributes"
                 >
                   generated
@@ -270,7 +262,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
           )}
         </div>
       )}
-      {!isCompactTouchLayout && <div className={`flex flex-shrink-0 items-center pl-2 gap-1`}>
+      {!menuActions && <div className={`flex flex-shrink-0 items-center pl-2 gap-1`}>
         {accessory}
         {renderMarkdownView?.({ iconOnly: isVeryTight, touch: false })}
         {showViewedControl && onToggleViewed && (
@@ -278,10 +270,12 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
             onClick={onToggleViewed}
             className={`text-xs rounded transition-colors flex items-center ${viewedLabel ? 'gap-1 px-2 py-1' : 'px-1.5 py-1'} ${
               isViewed
-                ? 'bg-success/15 text-success'
+                ? 'text-foreground hover:bg-muted'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             }`}
             title={`${isViewed ? 'Mark as not viewed' : 'Mark as viewed'}${viewedKeyHint ? ' (V)' : ''}`}
+            aria-pressed={isViewed}
+            data-file-header-viewed=""
           >
             {isViewed ? (
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -381,6 +375,7 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
             matching the plan/annotate side. */}
         {openIn}
         {!readOnly && <OpenInAppButton
+          quiet
           extraItems={[
             ...(foldActions && showStageControl && canStage && onStage ? [{ label: isStaged ? 'Unstage this file' : 'Stage this file', onSelect: onStage }] : []),
             ...(foldActions && onFileComment ? [{ label: 'Comment on this file', onSelect: () => headerRef.current && onFileComment(headerRef.current) }] : []),
@@ -396,7 +391,20 @@ export const FileHeader: React.FC<FileHeaderProps> = ({
           }
         />}
       </div>}
-      {isCompactTouchLayout && renderMarkdownView?.({ iconOnly: false, touch: true })}
+      {menuActions && (readOnly ? renderMarkdownView?.({ iconOnly: false, touch: true }) : (
+        <CompactFileActions
+          filePath={filePath}
+          patch={patch}
+          canOpen={state?.canUseLiveWorkspaceActions !== false && !(state?.prMetadata && !state?.agentCwd) && status !== 'deleted'}
+          base={state?.agentCwd ?? null}
+          markdownView={renderMarkdownView?.({ iconOnly: true, touch: isCompactTouchLayout })}
+          viewSwitch={accessory}
+          viewed={showViewedControl && onToggleViewed ? { isViewed, onToggle: onToggleViewed } : null}
+          onComment={onFileComment ? () => headerRef.current && onFileComment(headerRef.current) : undefined}
+          stage={showStageControl && canStage && onStage ? { isStaged, isStaging, onStage } : null}
+          onEdit={onEditFile && !isEditing && !editDisabledReason ? onEditFile : undefined}
+        />
+      ))}
     </div>
   );
 };
