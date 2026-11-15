@@ -12,7 +12,6 @@
 
 **A human checkpoint for plans, code changes and agent feedback.**
 
-PlanRelay builds on [Plannotator](https://github.com/backnotprop/plannotator), preserving its source and history while adding an optional, dependency-free **revision-aware review companion**. Read a plan, attach comments to exact lines, resolve blockers and export a decision tied to the content you actually reviewed.
 
 The problem: a plan changes, but an old “looks good” survives in chat. The companion makes that boundary explicit: **different content, different review**.
 
