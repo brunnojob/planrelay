@@ -112,6 +112,8 @@ The inherited `plannotator` command, plugins, Inbox, rich plan/HTML annotation a
 
 The demo runs the same interface and review state machine entirely in your browser, with localStorage persistence and sample content. It has no backend, Git access or automatic agent integrations. Demo reviews stay in that browser; keep one demo tab open and export useful feedback before clearing browser data.
 
+![PlanRelay review companion — source, anchored suggestions and revision decision](.github/assets/planrelay/preview.jpg)
+
 The companion provides a searchable review list, source viewer, anchored discussion, revision history, decision timeline and portable exports.
 
 ## Verification
