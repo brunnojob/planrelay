@@ -141,3 +141,5 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md). Start with a reproducible bug, a focuse
 PlanRelay is based on **Plannotator by backnotprop and contributors**. The upstream source, authorship history and original license texts are retained. See [NOTICE](NOTICE), [MIT](LICENSE-MIT) and [Apache 2.0](LICENSE-APACHE). Original companion contributions are MIT-licensed. Plannotator names and marks belong to their respective owners; this derivative is not endorsed by them.
 
 Maintained by [Brunno](https://github.com/brunnojob).
+
+Fell free to use and support
