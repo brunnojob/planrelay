@@ -10,6 +10,8 @@
 
 # PlanRelay
 
+![PlanRelay review companion — source, anchored suggestions and revision decision](.github/assets/planrelay/preview.jpg)
+
 **A human checkpoint for plans, code changes and agent feedback.**
 
 
@@ -40,10 +42,14 @@ The problem: a plan changes, but an old “looks good” survives in chat. The c
 
 The companion is an additional workflow for people who want explicit revision decisions. It does not replace or intercept inherited hooks, and its decisions do not automatically approve an upstream session.
 
-## Start in 30 seconds
+## Quick start
+
+Requires **Node.js 22 or later**. The PlanRelay companion has no third-party runtime dependencies, so there is no `npm install` step.
+
+Clone the repository, import the example plan and start the local review server:
 
 ```bash
-git clone https://github.com/brunnojob/planrelay.git
+git clone https://github.com/ineedfoundmyway/planrelay.git
 cd planrelay
 node tools/planrelay/cli.mjs import tools/planrelay/example-plan.md
 node tools/planrelay/cli.mjs serve --port 4387
@@ -105,13 +111,11 @@ The inherited `plannotator` command, plugins, Inbox, rich plan/HTML annotation a
 
 </details>
 
-## Preview
+## Browser demo
 
 [Open the interactive browser demo →](https://brunnojob.github.io/planrelay/planrelay-demo/)
 
 The demo runs the same interface and review state machine entirely in your browser, with localStorage persistence and sample content. It has no backend, Git access or automatic agent integrations. Demo reviews stay in that browser; keep one demo tab open and export useful feedback before clearing browser data.
-
-![PlanRelay review companion — source, anchored suggestions and revision decision](.github/assets/planrelay/preview.jpg)
 
 The companion provides a searchable review list, source viewer, anchored discussion, revision history, decision timeline and portable exports.
 
