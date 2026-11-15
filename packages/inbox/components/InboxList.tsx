@@ -33,6 +33,8 @@ import { TimeWithTick } from './DeliveryTick';
 import { ActionBadge, QuestionMark, WIDE_ROW_WAIT_WORDS, WaitCard, WaitWords, badgeDescription, rowHasBadge, rowMarks, type RowMarks } from './RowBadge';
 import { StatusMark, rowStatus } from './RowStatus';
 import { attachPullToRefresh } from '../pullRefresh';
+import { RowSwipeLayer, useRowSwipe } from './RowSwipeLayer';
+import { sameValue } from '../sameValue';
 import { TidyMenu, type TidyController } from './Tidy';
 import { ListFilterButton, type ListFilterSource } from './ListFilter';
 import { awayLine, machineTakes, type MachinesModel } from '../machines';
@@ -154,7 +156,7 @@ export interface InboxListProps {
    * The row's right-click menu (Copy link, Copy thread ID, Mark read or
    * Move back, Archive). Absent: no menu, the browser's own.
    */
-  onRowAction?: (row: InboxListRow, action: RowMenuAction) => void;
+  onRowAction?: (row: InboxListRow, action: RowMenuAction) => unknown;
   /** A press on a starred row's star. Absent (an older Inbox keeps no pins): the star is only a mark. */
   onUnstar?: (row: InboxListRow) => void;
   /** Snooze a row until a moment, from its menu (approval "inbox-snooze"). Absent (an older Inbox keeps no snoozes): no Snooze. */
@@ -1449,6 +1451,7 @@ export function InboxList(props: InboxListProps) {
   useLayoutEffect(() => {
     latest.current = props;
   });
+  const swipeLayerRef = useRowSwipe(bodyRef, latest, onRowAction !== undefined, titleOf);
   const openRow = useCallback((row: InboxListRow) => latest.current.onOpen(row), []);
   const markRead = useCallback((row: InboxListRow) => latest.current.onMarkRead?.(row), []);
   const markUnread = useCallback((row: InboxListRow) => latest.current.onMarkUnread?.(row), []);
@@ -1656,6 +1659,7 @@ export function InboxList(props: InboxListProps) {
           held={props.selectedThreadId !== null}
           phone={props.phone === true}
         >
+          {onRowAction && <RowSwipeLayer ref={swipeLayerRef} />}
           {props.stale}
           {props.ask}
           {awayLines.map((line) => (
@@ -1825,22 +1829,6 @@ export const ListRow = memo(
     a.onUnstar === b.onUnstar &&
     sameValue(a.row, b.row),
 );
-
-/** Deep equality over JSON-shaped values (a list row). */
-function sameValue(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
-  if (Array.isArray(a)) {
-    if (!Array.isArray(b) || a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) if (!sameValue(a[i], b[i])) return false;
-    return true;
-  }
-  if (Array.isArray(b)) return false;
-  const ka = Object.keys(a);
-  if (ka.length !== Object.keys(b).length) return false;
-  for (const k of ka) if (!sameValue((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])) return false;
-  return true;
-}
 
 /** The guided review mark drops its label to its icon when the row is short of room: only then does it need a tooltip. */
 function guideLabelHidden(trigger: Element): boolean {
