@@ -22,7 +22,8 @@ export function store(path) {
       const result = apply(read(), input, { id: randomUUID(), revision: typeof input?.content === 'string' ? digest(input.content) : undefined, now: new Date().toISOString() });
       if (!result.unchanged) {
         writeFileSync(temp, JSON.stringify(result.state, null, 2), { mode: 0o600, flag: 'wx' });
-        const handle = openSync(temp, 'r');
+        // Windows FlushFileBuffers requires a writable handle.
+        const handle = openSync(temp, 'r+');
         try { fsyncSync(handle); } finally { closeSync(handle); }
         renameSync(temp, file);
       }

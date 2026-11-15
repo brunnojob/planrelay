@@ -34,7 +34,18 @@ export async function startServer({ path, port = 0 }) {
         if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) fail('Missing session token', 403);
         if (req.headers['content-type']?.split(';')[0] !== 'application/json') fail('Expected application/json', 415);
         let size = 0, chunks = [];
-        for await (const chunk of req) { size += chunk.length; if (size > MAX_BODY) fail('Request too large', 413); chunks.push(chunk); }
+        // Drain oversized requests without destroying the socket before the 413 arrives.
+        await new Promise((resolve, reject) => {
+          let overflow = false;
+          req.on('data', chunk => {
+            size += chunk.length;
+            if (size > MAX_BODY) {
+              if (!overflow) { overflow = true; chunks = []; reject(Object.assign(new Error('Request too large'), { status: 413 })); }
+            } else if (!overflow) chunks.push(chunk);
+          });
+          req.once('end', resolve); req.once('error', reject);
+          req.once('aborted', () => reject(Object.assign(new Error('Request aborted'), { status: 400 })));
+        });
         let input;
         try { input = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { fail('Malformed JSON'); }
         const result = db.mutate(input);

@@ -104,7 +104,9 @@ test('HTTP enforces body size and does not persist the oversized import',async()
   try {
     const state=await (await fetch(origin+'/api/state')).json();
     const response=await fetch(origin+'/api/action',{method:'POST',headers:{'Content-Type':'application/json','X-PlanRelay-Token':state.token},body:JSON.stringify({action:'import',generation:0,title:'large',kind:'plan',content:'x'.repeat(1250000)})});
-    assert.equal(response.status,413);assert.equal(db.read().artifacts.length,0);
+    assert.equal(response.status,413);await response.json();assert.equal(db.read().artifacts.length,0);
+    const recovery=await fetch(origin+'/api/action',{method:'POST',headers:{'Content-Type':'application/json','X-PlanRelay-Token':state.token},body:JSON.stringify({action:'import',generation:0,title:'valid',kind:'plan',content:'Small valid plan'})});
+    assert.equal(recovery.status,200);await recovery.json();assert.equal(db.read().artifacts.length,1);
   } finally {await new Promise(resolve=>server.close(resolve));rmSync(dir,{recursive:true,force:true});}
 });
 const cli=new URL('../cli.mjs',import.meta.url);
