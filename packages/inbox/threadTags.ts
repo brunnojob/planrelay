@@ -29,6 +29,12 @@ export interface ThreadTagsHost {
   createAndSet: (threadId: string, name: string) => void;
   /** The tag whose list the window shows: its rows' menu offers Remove from <tag>. */
   listed: InboxInitiative | null;
+  /** Every row the window lists, the snoozed too (step 2: the Filter and the preview read them). */
+  rows?: readonly InboxListRow[];
+  /** A row's tags by the window's rule (`rowTagsHere`). */
+  rowTags?: RowTags;
+  /** The tags this Inbox's own listed threads carry: Search's Tag chip offers these (search reads this Inbox's threads). */
+  here?: readonly InboxInitiative[];
 }
 
 export const ThreadTagsContext = createContext<ThreadTagsHost | null>(null);
@@ -83,6 +89,12 @@ export function tagIdOn(tag: ListTag, machine: string | null, self: string | nul
 export function tagWrite(tag: ListTag, machine: string | null, self: string | null): { tag: string } | { name: string } {
   const id = !machine || machine === self ? tagIdOn(tag, null, self) : null;
   return id ? { tag: id } : { name: tag.name };
+}
+
+/** The tags this Inbox's own rows carry (`here` on the host): a linked machine's rows and tags left out. */
+export function tagsOnOwnRows<T extends ListTag>(tags: readonly T[], rows: readonly InboxListRow[], self: string | null, tagsOf: RowTags = ownTags): T[] {
+  const carried = new Set(rows.filter((row) => !row.machine || row.machine === self).flatMap((row) => tagsOf(row)));
+  return tags.filter((tag) => carried.has(tag.id));
 }
 
 /** This Inbox's own tags (the `#` picker's: a typed `#Name` tags only by a tag this Inbox holds). */
