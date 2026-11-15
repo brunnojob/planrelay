@@ -1,24 +1,28 @@
-# Contributing to Plannotator
+# Contributing to PlanRelay
 
-We welcome contributions!
+Thank you for improving developer review workflows. This is an independent derivative of Plannotator; keep upstream attribution and licensing intact.
 
-## License
+## Review companion
 
-This project is licensed under either of
+Use Node.js 22+. No dependencies need installing:
 
-- [Apache License, Version 2.0](LICENSE-APACHE) ([http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0))
-- [MIT license](LICENSE-MIT) ([http://opensource.org/licenses/MIT](http://opensource.org/licenses/MIT))
+```bash
+node tools/planrelay/cli.mjs serve --port 4387
+node --test tools/planrelay/test/review.test.mjs
+node tools/planrelay/build-demo.mjs
+```
 
-at your option.
+Before opening a PR, test the behavior you changed, regenerate the demo, and describe the problem, resulting behavior and checks. Use a temporary `--store` when experimenting. Never commit private review data or secrets. Keep changes to the companion under `tools/planrelay/` and its docs under `docs/planrelay/`. Browser demo output under `docs/planrelay-demo/` is generated; edit the source first.
 
-## Contribution
+## Inherited Plannotator code
 
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this project by you, as defined in the Apache-2.0 license,
-shall be dual licensed as above, without any additional terms or conditions.
+Read [AGENTS.md](AGENTS.md) and the applicable guide under `docs/agent-guides/`. Preserve both runtime paths where required. The full suite uses Bun and its own sandbox runner. Do not assume passing companion tests validates the inherited suite.
 
-## How to Submit
+## Useful contributions
 
-1. Fork the repository.
-2. Make your changes.
-3. Submit a Pull Request.
+- Reproducible bug reports with OS, Node version and minimal redacted input.
+- Keyboard and screen-reader accessibility improvements.
+- Tests around concurrent editing and revision changes.
+- A separately designed, explicitly enabled bridge for inherited agent integrations.
+
+Discuss architectural changes before implementing them. Contribution of original companion code is under MIT; inherited code follows its original dual license. Security issues should be reported privately to the maintainer using the repository's private vulnerability reporting feature when available. Do not include credentials in issues.

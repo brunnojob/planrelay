@@ -1,0 +1,14 @@
+PlanRelay
+
+Based on Plannotator (https://github.com/backnotprop/plannotator)
+Copyright 2025-2026 backnotprop and contributors.
+Upstream baseline: 47a2f0de686db71686794d3b46dbf7da68e56579.
+Original upstream source, history, LICENSE-MIT and LICENSE-APACHE are retained.
+
+PlanRelay review companion and derivative documentation:
+Copyright (c) 2026 Brunno (brunnojob). Licensed under the MIT License,
+a copy of which is provided in tools/planrelay/LICENSE.
+
+This is an independently maintained derivative, not an official Plannotator
+release or an endorsement by its authors. The added review companion uses
+separate storage and does not alter the inherited agent hook protocols.

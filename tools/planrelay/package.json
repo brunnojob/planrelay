@@ -1,0 +1,11 @@
+{
+  "name": "@brunnojob/planrelay-review",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Revision-bound local review companion for the PlanRelay fork of Plannotator",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "bin": { "planrelay": "cli.mjs" },
+  "scripts": { "start": "node cli.mjs serve", "test": "node --test test/*.test.mjs" }
+}

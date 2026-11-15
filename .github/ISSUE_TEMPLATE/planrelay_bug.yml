@@ -1,0 +1,16 @@
+name: PlanRelay review bug
+description: Report a reproducible problem in the review companion.
+title: '[PlanRelay] '
+body:
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include Node version, OS, command and expected vs actual behavior. Remove private content and secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      render: text

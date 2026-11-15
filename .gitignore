@@ -122,3 +122,6 @@ tests/helpers/.outside-scratch-*
 
 __pycache__/
 *.pyc
+
+# PlanRelay private local review data
+.planrelay/
