@@ -1,3 +1,5 @@
+import { revealFirstChange } from '../utils/revealFirstChange';
+import { EXPAND_COLOUR_WAIT_MS, MAX_LINE_DIFF_LENGTH } from '../utils/diffChromeMetrics';
 import React, { useMemo, useRef, useEffect, useLayoutEffect, useCallback, useState } from 'react';
 import { FileDiff, type DiffLineAnnotation } from '@pierre/diffs/react';
 import { LazyBlockBoundary } from '@plannotator/ui/components/LazyBlockBoundary';
@@ -14,6 +16,7 @@ import { buildCodeNavRequest } from '../utils/buildCodeNavRequest';
 import { ToolbarHost, type ToolbarHostHandle } from './ToolbarHost';
 import { OverlayScrollArea } from '@plannotator/ui/components/OverlayScrollArea';
 import { useOverlayViewport } from '@plannotator/ui/hooks/useOverlayViewport';
+import { FileMinimap } from './minimap/FileMinimap';
 import { FileHeader } from './FileHeader';
 // Lazy: the rendered views bring the text highlighter (which needs a DOM at
 // import), so it loads the first time a file is shown as Changes or Read.
@@ -23,11 +26,16 @@ const MarkdownFilePreview = React.lazy(async () => ({ default: (await import('./
 import { fileViewOfRendered, renderedViewOf, type MarkdownPreviewView } from '../hooks/useMarkdownPreview';
 import { MarkdownViewMenu } from './MarkdownViewMenu';
 import { BinaryFileNotice } from './BinaryFileNotice';
+import { ChangeNotice } from './ChangeNotice';
+import { changeNotice } from '../utils/changeNotice';
 import { FileCommentBanner } from './FileCommentBanner';
 import { DiffBottomBar } from './DiffBottomBar';
 import { OversizedFileNotice } from './OversizedFileNotice';
 import { isContentlessBinaryPatch, isImagePreviewCandidate, isOversizedReviewStubPatch } from '@plannotator/shared/diff-paths';
 import { ImageDiffPreview } from './ImageDiffPreview';
+import { ImageViewMenu } from './image-diff/ImageViewMenu';
+import { differencesSupported } from './image-diff/differences';
+import { isSvgPath, setSvgView, useSvgView } from './image-diff/svgView';
 import { PackageChangesCard } from './PackageChangesCard';
 import { isPackageChangePath } from '@plannotator/core/package-changes';
 import { isFileScopedAnnotation, lineRangeForAnnotation } from '../utils/annotationScope';
@@ -127,6 +135,8 @@ const PierreDiffContent = React.memo(({
         overflow: diffOverflow,
         diffIndicators,
         lineDiffType,
+        maxLineDiffLength: MAX_LINE_DIFF_LENGTH,
+      expandColourWaitMs: EXPAND_COLOUR_WAIT_MS,
         disableLineNumbers,
         disableBackground,
         expandUnchanged,
@@ -411,6 +421,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   // is state so effects re-run once the library has mounted the viewport.
   const { ref: containerRef, viewport, onViewportReady } =
     useOverlayViewport<HTMLDivElement>();
+  const [minimapShown, setMinimapShown] = useState(false);
   const splitSurfaceRef = useRef<HTMLDivElement>(null);
   const diffContentRef = useRef<HTMLDivElement>(null);
   const selectionSnapshotRef = useRef<DiffSelectionSnapshot | null>(null);
@@ -606,6 +617,24 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
     containerRef.current.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     previousScrollFilePathRef.current = filePath;
   }, [filePath, viewport]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || markdownPreviewEnabled) return;
+    let frame = 0;
+    let tries = 0;
+    const attempt = () => {
+      const hosts = [...container.querySelectorAll<HTMLElement>('diffs-container')];
+      const ready = hosts.some((host) => host.shadowRoot?.querySelector('[data-diff-span]'));
+      if (ready) {
+        for (const host of hosts) revealFirstChange(host);
+        return;
+      }
+      if (++tries < 20) frame = requestAnimationFrame(attempt);
+    };
+    frame = requestAnimationFrame(attempt);
+    return () => cancelAnimationFrame(frame);
+  }, [filePath, viewport, markdownPreviewEnabled]);
 
   // Clear pending selection when file changes
   const prevFilePathRef = useRef(filePath);
@@ -1070,6 +1099,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   // chunk (a genuine binary file, or a stub shape the marker does not cover)
   // still renders an empty body and still has to say why. Gated on the marker
   // so a marker-carrying stub is explained exactly once, by the message above.
+  const notice = useMemo(() => changeNotice(patch), [patch]);
   const isContentlessBinary = useMemo(
     () => !isOversizedStub && isContentlessBinaryPatch(patch),
     [patch, isOversizedStub],
@@ -1081,6 +1111,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
     () => imagePreviewAvailable && isImagePreviewCandidate(patch, filePath, oldPath),
     [imagePreviewAvailable, patch, filePath, oldPath],
   );
+  const svgViewChoice = useSvgView(filePath);
+  const isSvgImage = imagePreviewAvailable && !isImagePreview && (isSvgPath(filePath) || isSvgPath(oldPath));
+  const svgShown = isSvgImage && svgViewChoice === 'image';
 
   // Replay a selected line/range comment's anchor as the controlled highlight so
   // clicking it (inline card or sidebar) lights up its lines. A live compose
@@ -1093,8 +1126,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
     return lineRangeForAnnotation(ann);
   }, [selectedAnnotationId, annotations]);
 
+  const minimapOn = !collapsed && !bodyOverride && !markdownPreviewEnabled && !compactTouchLayout;
   return (
-    <div className="h-full flex flex-col">
+    <div className="relative h-full flex flex-col">
       <FileHeader
         filePath={filePath}
         patch={patch}
@@ -1138,6 +1172,17 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
               disabledReason={markdownViewDisabledReason}
             />
           )
+          : isImagePreview || isSvgImage
+          ? ({ iconOnly, touch }) => (
+            <ImageViewMenu
+              filePath={filePath}
+              comparable={status !== 'added' && status !== 'deleted'}
+              differencesAvailable={differencesSupported()}
+              source={isSvgImage ? { active: !svgShown, onChoose: (source) => setSvgView(filePath, source ? 'source' : 'image') } : undefined}
+              iconOnly={iconOnly}
+              touch={touch}
+            />
+          )
           : undefined}
       />
 
@@ -1145,7 +1190,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
         <div className="flex-1 min-h-0 relative flex flex-col" data-diff-body-override>{bodyOverride}</div>
       ) : !collapsed && (
         <OverlayScrollArea
-          className={`flex-1 min-h-0 relative ${isDraggingSplit ? 'select-none' : ''}`}
+          className={`flex-1 min-h-0 relative ${minimapOn && minimapShown ? 'mr-6' : ''} ${isDraggingSplit ? 'select-none' : ''}`}
           overflowX="scroll"
           overflowY="auto"
           onViewportReady={onViewportReady}
@@ -1187,9 +1232,10 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
             <>
               {/* Specific first, general second, and never both: whichever applies,
                   a card with no hunks to draw says why instead of reading as empty. */}
-              {isImagePreview ? (
+              {isImagePreview || svgShown ? (
                 <ImageDiffPreview
                   filePath={filePath}
+                  patch={patch}
                   status={status ?? 'modified'}
                   snapshotId={imageSnapshotId ?? reviewSnapshotId}
                   variant="single"
@@ -1201,6 +1247,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                 <>
                   {isOversizedStub && <OversizedFileNotice />}
                   {isContentlessBinary && <BinaryFileNotice />}
+                  {!isOversizedStub && !isContentlessBinary && notice && <ChangeNotice text={notice} />}
                 </>
               )}
               {packageChangesAvailable && isPackageChangePath(filePath) && (
@@ -1222,7 +1269,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
                 agentFindingSources={agentFindingSources}
                 explainDisabled={isAILoading}
               />
-              <div className="p-4" ref={diffContentRef}>
+              <div ref={diffContentRef} data-diff-content="" hidden={svgShown || undefined}>
                 <div ref={splitSurfaceRef} className="relative min-w-0" style={splitGridStyle}>
                   {isSplitLayout && diffOverflow !== 'wrap' && (
                     <div
@@ -1276,6 +1323,19 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
         </OverlayScrollArea>
       )}
       {!collapsed && !bodyOverride && !markdownPreviewEnabled && diffOverflow !== 'wrap' && <DiffBottomBar root={viewport} />}
+      {minimapOn && (
+        <FileMinimap
+          viewport={viewport}
+          content={diffContentRef.current}
+          filePath={filePath}
+          patch={patch}
+          viewed={isViewed === true}
+          annotations={annotations}
+          split={diffStyle === 'split'}
+          expandUnchanged={expandUnchanged === true}
+          onShownChange={setMinimapShown}
+        />
+      )}
 
       {/* The header's Comment button works in every view (diff, preview,
           collapsed), so its composer is mounted outside them. */}

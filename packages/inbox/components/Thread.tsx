@@ -24,6 +24,7 @@ import { annotationOf, attachmentFeedback, isFileComment, OWN_MESSAGE_COMMENT_RO
 import { withPictures } from '../commentPictureFiles';
 import { CommentPictures } from '../commentPictures';
 import { fileQuestionRecords, type FileQuestions } from '../fileQuestions';
+import { OpenLiveReview, ReviewAnchorLine } from './ReviewAnchorLine';
 import { replyViewingOf } from '../replyViewing';
 import { AttachmentTiles, changedCount } from './AttachmentTiles';
 import { AttachmentPane, type AttachmentPaneHandle } from './AttachmentPane';
@@ -5001,6 +5002,10 @@ export function ThreadPane({ inReviews = false, reviewView = null, onInReviews, 
           </div>
         )}
         {cardChip ? <div className="ib-tmeta" data-thread-card-row="">{cardChip}</div> : null}
+        {(() => {
+          const live = !machine ? thread.messages.find((m) => m.id === m.thread_id && m.review_live) : undefined;
+          return live?.review_live ? <OpenLiveReview threadId={live.thread_id} title={live.review_live.title} /> : null;
+        })()}
         {notice}
         {launched && (
           <div className="ib-tmeta" data-started-by="" data-launched={launched.id}>
@@ -5388,6 +5393,7 @@ export function ThreadPane({ inReviews = false, reviewView = null, onInReviews, 
                 ) : (
                 <>
                 {reviewView?.asked && message.id === thread.messages[0]?.id && <p className="ib-rvasked" data-review-asked="">{reviewView.asked}</p>}
+                {message.review_anchor && <ReviewAnchorLine anchor={message.review_anchor} resolved={!!message.review_resolved} />}
                 {message.author.kind === 'person' && message.quote && (
                   <SentQuoteLine message={thread.messages.find((m) => m.id === message.quote!.of)} words={message.quote.words} phone={phone} onJump={() => jumpToQuote(message.quote!)} />
                 )}

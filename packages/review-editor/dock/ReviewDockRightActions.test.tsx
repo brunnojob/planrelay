@@ -79,7 +79,37 @@ describe('ReviewDockRightActions', () => {
     await act(async () => gear.click());
     const popup = document.querySelector('[data-diff-display-popup]')!;
     const rows = Array.from(popup.querySelectorAll('[role="switch"]')).map((row) => row.textContent);
-    expect(rows).toEqual(['Wrap long lines', 'Line numbers', 'Backgrounds', 'Whole file', 'Hide whitespace']);
+    expect(rows).toEqual(['Wrap long lines', 'Line numbers', 'Backgrounds', 'Whole file', 'Hide whitespace', 'Show moved & renamed code']);
     expect(popup.textContent).not.toContain('Unified');
+  });
+
+  test.skipIf(!hasDom)('back and forward sit in the header from load, disabled until the first jump, so the cluster never moves', async () => {
+    const render = async (canBack: boolean) => {
+      const state = {
+        diffStyle: 'split',
+        onDiffStyleChange: () => {},
+        isCompactTouchLayout: false,
+        allFilesAllCollapsed: false,
+        onToggleAllFilesCollapsed: () => {},
+        navigation: { canBack, canForward: false, back: () => {}, forward: () => {} },
+      } as unknown as ReviewState;
+      await act(async () => root?.render(
+        <ReviewStateProvider value={state}>
+          <ReviewDockRightActions {...({ activePanel: null } as unknown as IDockviewHeaderActionsProps)} />
+        </ReviewStateProvider>,
+      ));
+    };
+    host = document.createElement('div');
+    document.body.appendChild(host);
+    root = createRoot(host);
+    await render(false);
+    const group = host.querySelector<HTMLElement>('[data-jump-history]')!;
+    expect(group).not.toBeNull();
+    const buttons = [...group.querySelectorAll<HTMLButtonElement>('[data-nav-history]')];
+    expect(buttons).toHaveLength(2);
+    expect(buttons.every((button) => button.disabled)).toBe(true);
+    expect(group.className).not.toContain('invisible');
+    await render(true);
+    expect(host.querySelector<HTMLButtonElement>('[data-nav-history="back"]')!.disabled).toBe(false);
   });
 });

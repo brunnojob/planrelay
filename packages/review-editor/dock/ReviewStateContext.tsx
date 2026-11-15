@@ -20,6 +20,9 @@ import type { HostLineNote } from '../components/hostLineNotes';
 import type { CodeFileAnnotationInput } from '@plannotator/ui/components/CodeFilePopout';
 import type { ChangedFileView } from '../components/FileViewSwitch';
 import type { DiagramEngineUrls } from '../utils/diagramEngineContract';
+import type { SemDiffClient } from '../semDiff/semDiffClient';
+import type { PowerUpConfig, PowerUpStatus } from '../semDiff/powerUp';
+import type { AllFilesLineTarget } from '../components/AllFilesCodeView';
 
 /** One-shot request to open the native code-annotation composer on a source range. */
 export interface LineAnnotationComposeRequest {
@@ -102,6 +105,13 @@ export interface ReviewState {
    *  and guide overviews draw as diagrams, the engine imported on the first
    *  such fence; absent, they show as code. */
   diagramEngine?: DiagramEngineUrls | null;
+  semDiffClient?: SemDiffClient | null;
+  powerUp?: PowerUpConfig;
+  onPowerUpStatus?: (status: PowerUpStatus) => void;
+  rejectPowerUpLink?: (candidateId: string) => void;
+  revealInAllChanges?: (path: string, range: SelectedLineRange) => void;
+  allFilesLineTarget?: AllFilesLineTarget | null;
+  openRepoFileAt?: (path: string, line: number) => void;
   /** Commit a comment made by selecting text in a previewed Markdown file
    *  (file-scoped, carries the quote). */
   onAddMarkdownPreviewComment?: (
@@ -148,6 +158,7 @@ export interface ReviewState {
   onAddWholeFileAnnotation?: (input: CodeFileAnnotationInput, options: { inDiff: boolean }) => void;
   /** Keep a preview tab (a comment in it, a double click on its tab). */
   onKeepFileTab?: (panelId: string) => void;
+  onOpenToSide?: (filePath: string) => void;
   /** Explorer (step 3): a jump's landing line, and where it came from. */
   revealTarget?: import('../utils/explorerNavigation').RevealTarget | null;
   jumpCrumb?: import('../utils/explorerNavigation').JumpCrumb | null;
@@ -219,7 +230,7 @@ export interface ReviewState {
   canStagePath?: (filePath: string) => boolean;
   /** Worktree path parsed from the live diffType when it's a
    *  `worktree:<path>:<subType>` string; null for the main tree and PR mode.
-   *  Feeds jobMatchesReviewContext's third argument so guide/tour context
+   *  Feeds jobMatchesReviewContext's third argument so guide context
    *  matching is worktree-aware (populated from App.tsx's
    *  activeWorktreePath memo — the same parse that drives the sections/tree
    *  UI, so context matching aligns with what's on screen). */
@@ -301,7 +312,6 @@ export interface ReviewState {
   commitInfo: import('@plannotator/shared/types').CommitDiffInfo | null;
   semanticDiffAvailable: boolean;
   isSemanticDiffActive: boolean;
-  onSemanticDiffUnavailable: () => void;
   onSemanticDiffLoadError: () => boolean;
   onSemanticDiffLoadSuccess: () => void;
   callFlowAvailable: boolean;
@@ -324,9 +334,6 @@ export interface ReviewState {
   returnFromCallTree?: () => void;
   /** Stop showing the hunk's tree (the tab's own trees again). */
   clearCallTreeRequest?: () => void;
-
-  // Tour
-  openTourPanel: (jobId: string) => void;
 
   // Guide — optional because not every host wires a guide takeover surface.
   openGuide?: (jobId: string) => void;
